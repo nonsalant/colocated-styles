@@ -2,10 +2,8 @@ class MyComponent extends HTMLElement {
     static cssPaths = ['my-component.css'];
 
     constructor() {
-        super().attachShadow({ mode: 'open' }).innerHTML = `
-            <h1>Hello World</h1>
-        `;
-        // current shadow root or the first parent (shadow root or 'document')
+        super().attachShadow({ mode: 'open' }).innerHTML = `<h1>Hello World</h1>`;
+        // Current shadow root or the first parent shadow root or 'document'
         this.assetHost = this.shadowRoot ?? this.getRootNode();
     }
 
@@ -14,10 +12,9 @@ class MyComponent extends HTMLElement {
     }
 
     async addAssets() {
-        // To access static stuff from non-static method:
-        const self = this.constructor;
-        const paths = self.cssPaths;
-        const stylesheets = await self.addCss(...paths);
+        const Ctor = this.constructor; // to access static stuff from non-static method
+        const cssPaths = Ctor.cssPaths;
+        const stylesheets = await Ctor.addCss(...cssPaths);
         this.assetHost.adoptedStyleSheets.push(...stylesheets);
     }
 
@@ -29,7 +26,6 @@ class MyComponent extends HTMLElement {
         const stylesheets = [];
         for (let path of stylesheetPaths) {
             path = `${this.basePath}${path}`;
-
             // Check if we already have a promise for this stylesheet
             if (!this.cssPromiseCache.has(path)) {
                 // Create and cache the complete stylesheet creation promise
@@ -41,12 +37,10 @@ class MyComponent extends HTMLElement {
                     .then(async (cssText) => { return await createStylesheet(cssText); })
                     .catch(error => {
                         console.error(`Error loading stylesheet ${path}:`, error);
-                        return new CSSStyleSheet(); // Return empty stylesheet as fallback
+                        return new CSSStyleSheet(); // return empty stylesheet as fallback
                     });
-
                 this.cssPromiseCache.set(path, stylesheetPromise);
             }
-
             // Await the cached promise
             const stylesheet = await this.cssPromiseCache.get(path);
             stylesheets.push(stylesheet);
