@@ -11,3 +11,6 @@ this.assetHost = this.shadowRoot ?? this.getRootNode();
 ```
 
 The `assetHost` property is the shadow root of the component if it has one, or the document itself if the component is not in a shadow DOM. If the component is inside the shadow DOM of another component, the `assetHost` will be the closest ancestor shadow root.
+
+## Live Demo
+[colocated-styles.netlify.app](https://colocated-styles.netlify.app/)
