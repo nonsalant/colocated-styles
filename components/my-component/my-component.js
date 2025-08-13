@@ -1,4 +1,4 @@
-class MyComponent extends HTMLElement {
+export default class MyComponent extends HTMLElement {
     static cssPaths = ['my-component.css'];
 
     constructor() {
