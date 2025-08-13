@@ -1,38 +1,35 @@
 class MyComponent extends HTMLElement {
-    static #cssPaths = ['my-component.css'];
+    static cssPaths = ['my-component.css'];
 
     constructor() {
         super().attachShadow({ mode: 'open' }).innerHTML = `
             <h1>Hello World</h1>
         `;
-        // current shadow root or the first parent shadow root or 'document'
+        // current shadow root or the first parent (shadow root or 'document')
         this.assetHost = this.shadowRoot ?? this.getRootNode();
     }
 
     connectedCallback() {
-        this.#addAssets();
-        // ...
+        this.addAssets();
     }
 
-    static get Self() { return this; } // Static alias to the current class
-    static #basePath = import.meta.resolve('./');
-    async #addAssets() {
-        const self = this.constructor.Self;
-        const paths = self.#cssPaths;
-        const stylesheets = await self.#addCss(...paths);
+    static basePath = import.meta.resolve('./');
+    async addAssets() {
+        const self = this.constructor; // because we need to access static properties
+        const paths = self.cssPaths;
+        const stylesheets = await self.addCss(...paths);
         this.assetHost.adoptedStyleSheets.push(...stylesheets);
     }
 
     // Load CSS files and cache the stylesheets statically
-    static #cssPromiseCache = new Map();
-    static async #addCss(...stylesheetPaths) {
+    static cssPromiseCache = new Map();
+    static async addCss(...stylesheetPaths) {
         const stylesheets = [];
-        const self = this.Self;
         for (let path of stylesheetPaths) {
-            path = `${self.#basePath}${path}`;
+            path = `${this.basePath}${path}`;
 
             // Check if we already have a promise for this stylesheet
-            if (!self.#cssPromiseCache.has(path)) {
+            if (!this.cssPromiseCache.has(path)) {
                 // Create and cache the complete stylesheet creation promise
                 const stylesheetPromise = fetch(path)
                     .then(response => {
@@ -45,17 +42,17 @@ class MyComponent extends HTMLElement {
                         return new CSSStyleSheet(); // Return empty stylesheet as fallback
                     });
 
-                self.#cssPromiseCache.set(path, stylesheetPromise);
+                this.cssPromiseCache.set(path, stylesheetPromise);
             }
 
             // Await the cached promise
-            const stylesheet = await self.#cssPromiseCache.get(path);
+            const stylesheet = await this.cssPromiseCache.get(path);
             stylesheets.push(stylesheet);
         }
         return stylesheets;
     }
 
-    ///
+    /* Auto define */
     // Statically define the element unless ?define=false is set as an URL param
     static {
         const tag = new URL(import.meta.url).searchParams.get("define") || this.tag;
