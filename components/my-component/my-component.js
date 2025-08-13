@@ -13,13 +13,15 @@ class MyComponent extends HTMLElement {
         this.addAssets();
     }
 
-    static basePath = import.meta.resolve('./');
     async addAssets() {
-        const self = this.constructor; // because we need to access static properties
+        // To access static stuff from non-static method:
+        const self = this.constructor;
         const paths = self.cssPaths;
         const stylesheets = await self.addCss(...paths);
         this.assetHost.adoptedStyleSheets.push(...stylesheets);
     }
+
+    static basePath = import.meta.resolve('./');
 
     // Load CSS files and cache the stylesheets statically
     static cssPromiseCache = new Map();
@@ -53,10 +55,10 @@ class MyComponent extends HTMLElement {
     }
 
     /* Auto define */
-    // Statically define the element unless ?define=false is set as an URL param
+    // Statically define (+name) the element unless ?define=false is set as an URL param
     static {
-        const tag = new URL(import.meta.url).searchParams.get("define") || this.tag;
-        if (tag !== "false") this.define(tag);
+        const tag = new URL(import.meta.url).searchParams.get('define') || this.tag;
+        if (tag !== 'false') this.define(tag);
     }
     static define(tag = camelToKebab(this.name)) {
         this.tag = tag;
@@ -85,7 +87,7 @@ export async function createStylesheet(cssText) {
  * @param {string} str - The CamelCase string to convert
  * @returns {string} The converted kebab-case string
  * @example
- * camelToKebab("myCamelCaseString"); // "my-camel-case-string"
+ * camelToKebab('myCamelCaseString'); // 'my-camel-case-string'
  */
 export function camelToKebab(str) {
     return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
