@@ -1,38 +1,38 @@
 class MyComponent extends HTMLElement {
     static #cssPaths = ['my-component.css'];
-    static #basePath = import.meta.resolve('./');
-    // Private static alias to the current class (works with subclassing too)
-    static get #Self() { return this; }
-    #host;
 
     constructor() {
         super().attachShadow({ mode: 'open' }).innerHTML = `
             <h1>Hello World</h1>
         `;
-        // current shadow root or 'document' or the first parent shadow root
-        this.#host = this.shadowRoot ?? this.getRootNode();
+        // current shadow root or the first parent shadow root or 'document'
+        this.assetHost = this.shadowRoot ?? this.getRootNode();
     }
 
     connectedCallback() {
         this.#addAssets();
-       // …
+        // ...
     }
 
+    static get Self() { return this; } // Static alias to the current class
+    static #basePath = import.meta.resolve('./');
     async #addAssets() {
-        const C = this.constructor.#Self;
-        const stylesheets = await C.#css(...C.#cssPaths);
-        this.#host.adoptedStyleSheets.push(...stylesheets);
+        const self = this.constructor.Self;
+        const paths = self.#cssPaths;
+        const stylesheets = await self.#addCss(...paths);
+        this.assetHost.adoptedStyleSheets.push(...stylesheets);
     }
 
     // Load CSS files and cache the stylesheets statically
-    static async #css(...stylesheetPaths) {
+    static #cssPromiseCache = new Map();
+    static async #addCss(...stylesheetPaths) {
         const stylesheets = [];
-        const C = this.#Self;
+        const self = this.Self;
         for (let path of stylesheetPaths) {
-            path = `${C.#basePath}${path}`;
+            path = `${self.#basePath}${path}`;
 
             // Check if we already have a promise for this stylesheet
-            if (!C.#cssPromiseCache.has(path)) {
+            if (!self.#cssPromiseCache.has(path)) {
                 // Create and cache the complete stylesheet creation promise
                 const stylesheetPromise = fetch(path)
                     .then(response => {
@@ -45,32 +45,29 @@ class MyComponent extends HTMLElement {
                         return new CSSStyleSheet(); // Return empty stylesheet as fallback
                     });
 
-                C.#cssPromiseCache.set(path, stylesheetPromise);
+                self.#cssPromiseCache.set(path, stylesheetPromise);
             }
 
             // Await the cached promise
-            const stylesheet = await C.#cssPromiseCache.get(path);
+            const stylesheet = await self.#cssPromiseCache.get(path);
             stylesheets.push(stylesheet);
         }
         return stylesheets;
     }
-    static #cssPromiseCache = new Map();
 
     ///
-
     // Statically define the element unless ?define=false is set as an URL param
-    static tag = "my-component";
-    static define(tag = this.tag) {
+    static {
+        const tag = new URL(import.meta.url).searchParams.get("define") || this.tag;
+        if (tag !== "false") this.define(tag);
+    }
+    static define(tag = camelToKebab(this.name)) {
         this.tag = tag;
         const name = customElements.getName(this);
         if (name) return console.warn(`${this.name} already defined as <${name}>!`);
         const ce = customElements.get(tag);
         if (Boolean(ce) && ce !== this) return console.warn(`<${tag}> already defined as ${ce.name}!`);
         customElements.define(tag, this);
-    }
-    static {
-        const tag = new URL(import.meta.url).searchParams.get("define") || this.tag;
-        if (tag !== "false") this.define(tag);
     }
 }
 
@@ -84,4 +81,15 @@ export async function createStylesheet(cssText) {
     const stylesheet = new CSSStyleSheet();
     await stylesheet.replace(cssText);
     return stylesheet;
+}
+
+/**
+ * Converts a CamelCase string into a kebab-case string
+ * @param {string} str - The CamelCase string to convert
+ * @returns {string} The converted kebab-case string
+ * @example
+ * camelToKebab("myCamelCaseString"); // "my-camel-case-string"
+ */
+export function camelToKebab(str) {
+    return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 }
